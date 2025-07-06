@@ -1,19 +1,25 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ExternalLink, CheckCircle, Clock, Target, Users, Zap, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ResultsProps {
   roles: string[];
   pains: string[];
+  sessionId: string;
   onBack: () => void;
   onDemo: () => void;
 }
 
-const Results = ({ roles, pains, onBack, onDemo }: ResultsProps) => {
+interface AIRecommendation {
+  title: string;
+  description: string;
+}
+
+const Results = ({ roles, pains, sessionId, onBack, onDemo }: ResultsProps) => {
   const [isLoading, setIsLoading] = useState(true);
-  const [personalizedContent, setPersonalizedContent] = useState<string>('');
+  const [aiRecommendations, setAiRecommendations] = useState<AIRecommendation[]>([]);
 
   // Mock data for case studies and metrics
   const caseStudies = {
@@ -60,23 +66,53 @@ const Results = ({ roles, pains, onBack, onDemo }: ResultsProps) => {
     }
   };
 
-  // Generate personalized content based on selections
+  // Generate AI-powered personalized content
   useEffect(() => {
-    const generateContent = () => {
+    const generatePersonalizedContent = async () => {
+      if (!sessionId || roles.length === 0 || pains.length === 0) return;
+
       setIsLoading(true);
       
-      // Simulate API call delay
-      setTimeout(() => {
-        const roleText = roles.length > 1 ? roles.join(', ') : roles[0];
-        const content = `Based on your focus on ${roleText} roles and the challenges you've identified, here's how Paraform can transform your hiring process...`;
-        
-        setPersonalizedContent(content);
+      try {
+        const { data, error } = await supabase.functions.invoke('generate-recommendations', {
+          body: {
+            sessionId,
+            roles,
+            pains
+          }
+        });
+
+        if (error) {
+          console.error('Error calling OpenAI function:', error);
+          toast.error('Failed to generate personalized recommendations');
+          return;
+        }
+
+        if (data.recommendations) {
+          try {
+            const parsedRecommendations = JSON.parse(data.recommendations);
+            if (parsedRecommendations.recommendations && Array.isArray(parsedRecommendations.recommendations)) {
+              setAiRecommendations(parsedRecommendations.recommendations);
+            }
+          } catch (parseError) {
+            console.error('Error parsing AI recommendations:', parseError);
+            // Fallback to showing the raw response
+            setAiRecommendations([{
+              title: "Personalized Recommendation",
+              description: data.recommendations || data.fallback || "We recommend using Paraform to streamline your hiring process."
+            }]);
+          }
+        }
+      } catch (error) {
+        console.error('Error generating personalized content:', error);
+        toast.error('Failed to generate personalized recommendations');
+      } finally {
         setIsLoading(false);
-      }, 2000);
+      }
     };
 
-    generateContent();
-  }, [roles, pains]);
+    generatePersonalizedContent();
+  }, [sessionId, roles, pains]);
 
   const getRelevantCaseStudies = () => {
     let studies: any[] = [];
@@ -90,11 +126,9 @@ const Results = ({ roles, pains, onBack, onDemo }: ResultsProps) => {
 
   const handleDemoClick = () => {
     // Track demo button click
-    console.log('Demo button clicked', { roles, pains, timestamp: new Date().toISOString() });
+    console.log('Demo button clicked', { sessionId, roles, pains, timestamp: new Date().toISOString() });
     
-    // In a real app, you'd send this to your analytics service
     toast.success('Redirecting to Paraform demo...');
-    
     onDemo();
   };
 
@@ -104,7 +138,7 @@ const Results = ({ roles, pains, onBack, onDemo }: ResultsProps) => {
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin mx-auto mb-4"></div>
           <h2 className="text-2xl font-semibold text-gray-700 mb-2">Generating Your Personalized Strategy</h2>
-          <p className="text-gray-500">Analyzing your needs and matching with success stories...</p>
+          <p className="text-gray-500">Analyzing your needs and creating custom recommendations...</p>
         </div>
       </div>
     );
@@ -128,10 +162,10 @@ const Results = ({ roles, pains, onBack, onDemo }: ResultsProps) => {
           {/* Header */}
           <div className="text-center mb-12">
             <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              Here's How <span className="gradient-text">Paraform Solves</span> Your Challenges
+              Here's Your <span className="gradient-text">AI-Powered</span> Hiring Strategy
             </h1>
             <p className="text-xl text-gray-600">
-              Personalized solutions based on your hiring needs
+              Personalized recommendations based on your specific needs
             </p>
           </div>
 
@@ -165,6 +199,24 @@ const Results = ({ roles, pains, onBack, onDemo }: ResultsProps) => {
               </div>
             </div>
           </div>
+
+          {/* AI-Generated Recommendations */}
+          {aiRecommendations.length > 0 && (
+            <div className="mb-12">
+              <h3 className="text-2xl font-bold mb-6 text-gray-900 flex items-center">
+                <Zap className="w-6 h-6 mr-3 text-purple-500" />
+                AI-Powered Recommendations for You
+              </h3>
+              <div className="space-y-6">
+                {aiRecommendations.map((recommendation, index) => (
+                  <div key={index} className="bg-gradient-to-r from-purple-50 to-blue-50 p-6 rounded-xl border border-purple-200 shadow-sm">
+                    <h4 className="text-xl font-bold mb-3 text-gray-900">{recommendation.title}</h4>
+                    <p className="text-gray-700 leading-relaxed">{recommendation.description}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Solutions */}
           <div className="space-y-8 mb-12">

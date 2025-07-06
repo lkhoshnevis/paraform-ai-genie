@@ -4,6 +4,7 @@ import LandingPage from '@/components/LandingPage';
 import RoleSelection from '@/components/RoleSelection';
 import PainSelection from '@/components/PainSelection';
 import Results from '@/components/Results';
+import { useSessionTracking } from '@/hooks/useSessionTracking';
 
 type Step = 'landing' | 'roles' | 'pains' | 'results';
 
@@ -11,18 +12,23 @@ const Index = () => {
   const [currentStep, setCurrentStep] = useState<Step>('landing');
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   const [selectedPains, setSelectedPains] = useState<string[]>([]);
+  const { sessionId, saveUserSession, trackDemoClick } = useSessionTracking();
 
   const handleStart = () => {
     setCurrentStep('roles');
   };
 
-  const handleRoleSelection = (roles: string[]) => {
+  const handleRoleSelection = async (roles: string[]) => {
     setSelectedRoles(roles);
     setCurrentStep('pains');
   };
 
-  const handlePainSelection = (pains: string[]) => {
+  const handlePainSelection = async (pains: string[]) => {
     setSelectedPains(pains);
+    
+    // Save user session to database
+    await saveUserSession(selectedRoles, pains);
+    
     setCurrentStep('results');
   };
 
@@ -40,9 +46,12 @@ const Index = () => {
     setCurrentStep('pains');
   };
 
-  const handleDemo = () => {
-    // Track demo conversion
+  const handleDemo = async () => {
+    // Track demo button click
+    await trackDemoClick(selectedRoles, selectedPains);
+    
     console.log('Demo conversion tracked', {
+      sessionId,
       roles: selectedRoles,
       pains: selectedPains,
       timestamp: new Date().toISOString()
@@ -65,6 +74,7 @@ const Index = () => {
           <Results
             roles={selectedRoles}
             pains={selectedPains}
+            sessionId={sessionId}
             onBack={handleBackToPains}
             onDemo={handleDemo}
           />
