@@ -9,7 +9,115 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      ai_responses: {
+        Row: {
+          ai_response: string
+          created_at: string | null
+          id: string
+          pains: string[]
+          roles: string[]
+          session_id: string
+        }
+        Insert: {
+          ai_response: string
+          created_at?: string | null
+          id?: string
+          pains?: string[]
+          roles?: string[]
+          session_id: string
+        }
+        Update: {
+          ai_response?: string
+          created_at?: string | null
+          id?: string
+          pains?: string[]
+          roles?: string[]
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_responses_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "user_sessions"
+            referencedColumns: ["session_id"]
+          },
+        ]
+      }
+      demo_clicks: {
+        Row: {
+          clicked_at: string | null
+          id: string
+          pains: string[]
+          roles: string[]
+          session_id: string
+        }
+        Insert: {
+          clicked_at?: string | null
+          id?: string
+          pains?: string[]
+          roles?: string[]
+          session_id: string
+        }
+        Update: {
+          clicked_at?: string | null
+          id?: string
+          pains?: string[]
+          roles?: string[]
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demo_clicks_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "user_sessions"
+            referencedColumns: ["session_id"]
+          },
+        ]
+      }
+      selections: {
+        Row: {
+          created_at: string
+          id: number
+        }
+        Insert: {
+          created_at: string
+          id?: number
+        }
+        Update: {
+          created_at?: string
+          id?: number
+        }
+        Relationships: []
+      }
+      user_sessions: {
+        Row: {
+          created_at: string | null
+          id: string
+          selected_pains: string[]
+          selected_roles: string[]
+          session_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          selected_pains?: string[]
+          selected_roles?: string[]
+          session_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          selected_pains?: string[]
+          selected_roles?: string[]
+          session_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
